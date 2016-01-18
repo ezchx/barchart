@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+  <style>
+
+  body {
+    text-align: center;
+  }
+
+  span {
+   font-family: arial;
+  }
+
+  svg {
+    box-shadow: 2px 2px 2px #888888;
+    border: solid 1px #c0c0c0;
+    margin-top: 60px;
+
+  }
+
+
+  .bar {
+    fill: steelblue;
+  }
+
+  .bar:hover {
+    fill: #A5BDD9;
+  }
+
+  .axis {
+    font: 10px sans-serif;
+  }
+
+  .axis path,
+  .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+
+  .d3-tip {
+    line-height: 1;
+    font-weight: bold;
+    padding: 12px;
+    background: #A5BDD9;
+    color: #fff;
+    border-radius: 2px;
+  }
+
+  /* Creates a small triangle extender for the tooltip */
+  .d3-tip:after {
+    box-sizing: border-box;
+    display: inline;
+    font-size: 10px;
+    width: 100%;
+    line-height: 1;
+    color: #A5BDD9;
+    content: "\25BC";
+    position: absolute;
+    text-align: center;
+  }
+
+  /* Style northward tooltips differently */
+  .d3-tip.n:after {
+    margin: -1px 0 0 0;
+    top: 100%;
+    left: 0;
+  }
+
+  </style>
+</head>
+
+<body>
+	
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<script>
+
+var margin = {top: 40, right: 20, bottom: 70, left: 60},
+    width = 960 - margin.left - margin.right,
+    height = 650 - margin.top - margin.bottom;
+
+// Parse the date / time
+var parseTime = d3.time.format("%Y-%m-%d").parse;
+
+var dateFormat = d3.time.format("%B %Y")
+
+var x = d3.time.scale()
+    .range([0, width]);
+
+var y = d3.scale.linear().range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .ticks(d3.time.years, 5)
+    .tickFormat(d3.time.format("%Y"))
+    .tickSize(0)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var tip = d3.tip()
+  .attr('class', 'd3-tip')
+  .offset([-10, 0])
+  .html(function(d) {
+    return "<span style='color:black'>" + dateFormat(d.date) + "<br>$" + Math.round(d.value).toLocaleString() + " Billion</span>";
+  })
+
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+
+var data = [];
+
+svg.call(tip);
+
+$.getJSON("https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/GDP-data.json", function(json) {
+
+  for (var i = 0; i < json.data.length; i++) {
+    var dateTemp = parseTime(json.data[i][0]);
+    var closeTemp = +json.data[i][1];
+    data.push({"date": dateTemp, "value": closeTemp});
+  }
+
+  x.domain([new Date(data[0].date), d3.time.year.offset(new Date(data[json.data.length-1].date), 1)])
+  y.domain([0, d3.max(data, function(d) { return d.value; })]);
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", "1.0em")
+      .attr("dy", "1.0em")
+      .attr("transform", "rotate(0)" );
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("US$ Billions");
+
+  svg.selectAll("bar")
+      .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", function(d) { return x(new Date(d.date)); })
+      .attr("width", 4)
+      .attr("y", function(d) { return y(d.value); })
+      .attr("height", function(d) { return height - y(d.value); })
+      .on('mouseover', tip.show)
+      .on('mouseout', tip.hide)
+
+  svg.append("text")
+      .attr("x", (width / 2))             
+      .attr("y", (margin.top)/8)
+      .attr("text-anchor", "middle")  
+      .style("font-size", "30px") 
+      .style("font-family", "arial") 
+      .style("text-decoration", "none")  
+      .text("US Gross Domestic Product");
+
+  svg.append("text")
+      .attr("x", (width / 2))             
+      .attr("y", (height + (margin.bottom/2)+7))
+      .attr("text-anchor", "middle")
+      .attr("width", width) 
+      .style("font-size", "12px") 
+      .style("font-family", "arial") 
+      .style("text-decoration", "none")  
+      .text(json.description.substring(80,(json.description.length)));
+
+});
+
+
+
+
+</script>
+
+</body>
